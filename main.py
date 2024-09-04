@@ -4,31 +4,51 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import pandas as pd
-import time
+from tabulate import tabulate
+
 
 chrome_options = Options()
 chrome_options.add_experimental_option("detach", True)
 service = Service(ChromeDriverManager().install())
 navegador = webdriver.Chrome(service=service, options=chrome_options)
 
-item = "notebook"
 
-navegador.get(f'https://www.mercadolivre.com.br')
+item = "carregador"
 
-navegador.find_element('xpath', '//*[@id="cb1-edit"]').send_keys(item)
-navegador.find_element('xpath', '/html/body/header/div/div[2]/form/button').click()
+navegador.get("https://www.buscape.com.br")
 
-#Necessario checar uma forma de receber os nomes e precos iguais
-nome_mercadoLivre = navegador.find_elements(By.CLASS_NAME, "ui-search-item__title")
+navegador.find_element(
+    'xpath', '//*[@id="new-header"]/div[1]/div/div/div[3]/div/div/div[2]/div/div[1]/input').send_keys(item)
+navegador.find_element(
+    'xpath', '//*[@id="new-header"]/div[1]/div/div/div[3]/div/div/div[2]/div/div[1]/button').click()
 
-preco_mercadoLivre = navegador.find_elements(By.CSS_SELECTOR, "span[aria-label*='reais']")
+nome = navegador.find_elements(By.XPATH, "//*[contains(@id, 'product-card-')]")
 
-avaliacao_mercadoLivre = navegador.find_elements(By.CLASS_NAME, "ui-search-reviews__rating-number")
+valor =  navegador.find_elements(By.XPATH, '//*[@id="__next"]/main/div[2]/div[7]/div/div/a/div[2]/div[2]/div[2]/p')
+if len(valor) == 0:
+    valor = navegador.find_elements(By.XPATH, '//*[@id="__next"]/main/div[2]/div[6]/div/div/a/div[2]/div[2]/div[2]/p')
 
-preco_mercadoLivre_n = [preco.text.replace('\n', '') for preco in preco_mercadoLivre]
-for x in preco_mercadoLivre_n:
-    print(f'{x}')
+#Arrumar links
+links = navegador.find_elements(By.TAG_NAME, "a")
+link_novo = list()
+for x in range(183, 207):
+    href = links[x].get_attribute("href")
+    link_novo.append(href)
 
-print(len(preco_mercadoLivre_n))
+print(len(nome))
+print(len(valor))
+print(len(link_novo))
+produto = pd.DataFrame()
 
-#Rever a busca dos valores, mais valores do que produtos
+for x in range(0, len(nome)):
+    inserir = pd.DataFrame({
+        'nome': [nome[x].text],
+        'valor': [float(valor[x].text.replace('R$ ', '').replace(',', '.'))],
+        'link_novo': [link_novo[x]],
+    })
+
+    produto = pd.concat([produto, inserir], ignore_index=True)
+
+print(produto.sort_values(by='valor'))
+
+print(produto.dtypes)
